@@ -5,7 +5,8 @@ Very simple python script for monitoring Claymore's Dual Ethereum miner. It will
   3. GPU fan speed is less than a configured limit (possibly fan is broken)
   4. Number of invalid shares increasing
   5. Miner was restarted
-  6. System was rebooted  
+  6. System was rebooted 
+  7. Pool is unreachable
   
   If avg hashrate during 5 mins is less than a limit two times in a row, ethmon will send email and reboot the system.
 
