@@ -16,3 +16,7 @@ Python uptime package. Installation:
   
 ## Setup:  
   Just set all necessary parameters at config section
+  
+  
+## Screenshot
+![Alt text](https://github.com/amravyan/ethmon/raw/master/screen.JPG "Optional Title")
