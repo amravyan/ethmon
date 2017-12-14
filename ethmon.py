@@ -223,14 +223,14 @@ def main():
         logger.info('Avg hashrate: ' + str("{:,.2f}".format(current_hashrate / 1000)) + " Mh/s")
         if current_hashrate < hashrate_limit:
             if previous_hashrate < hashrate_limit:
-                logger.info('Avg hashrate < 175 Mh/s two times in a row, sending emails and reboot!')
+                logger.info('Avg hashrate <' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s two times in a row, sending emails and reboot!')
                 send_email(email_user, email_password, recipient,
                            'Alarm! Hashrate is less than' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s',
                            'Current avg hashrate is %s h/s. Rebooting!' % "{:,.2f}".format(
                                current_hashrate), logger)
                 os.system("shutdown -r -c \"low hashrate, rebooted by vahter!\"")
-            logger.info('Avg hashrate < 175 Mh/s, sending emails')
-            send_email(email_user, email_password, recipient, 'Warning! Hashrate is less than 175 Mh/s',
+            logger.info('Avg hashrate <' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s, sending emails')
+            send_email(email_user, email_password, recipient, 'Warning! Hashrate is less than ' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s',
                        'Current avg hashrate is %s h/s.' % "{:,.2f}".format(current_hashrate), logger)
         previous_hashrate = current_hashrate
 
