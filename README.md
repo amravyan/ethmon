@@ -8,9 +8,9 @@ Very simple python script for monitoring Claymore's Dual Ethereum miner. It will
   6. System was rebooted
 If avg hashrate during 5 mins is less than a limit two times in a row, ethmon will send email and reboot the system.
 
-Dependencies:
-  Python uptime package. Installation:  
+Dependencies:  
+Python uptime package. Installation:  
     pip install uptime
   
-Setup:
+Setup:  
   Just set all necessary parameters at config section
