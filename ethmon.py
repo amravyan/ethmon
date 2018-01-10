@@ -23,12 +23,23 @@ miner_password = 'password'
 pools = ['eth-eu1.nanopool.org', 'eth-eu2.nanopool.org', 'eth-us-east1.nanopool.org', 'eth-us-west1.nanopool.org',
          'eth-asia1.nanopool.org']
 pool_port = 9999
+miner_path = 'C:\Claymore10.2\EthDcrMiner64.exe'
+epool = 'eth-eu1.nanopool.org:9999'
+ewal = 'wallet.worker1/mail@gmail.com'
+epsw = 'x'
+dcoin = 'sia'
+dpool = 'stratum+tcp://sia-eu1.nanopool.org:7777'
+dwal = 'wallet/worker1/mail@gmail.com'
+dpsw = 'x'
+ftime = '10'
+mpsw = 'password'
 
 # limits
 hashrate_limit = 100000 	#h/s
 fan_speed_limit = 50		#percent    
 gpu_temp_limit = 65			#Celsius
 uptime_limit = 180			#seconds
+cards_limit = 6
 
 # logging
 log_name = 'ethmon.log'
@@ -52,7 +63,7 @@ def get_data(ip, port, password, logger):
         logger('Sending data was aborted')
         return []
     try:
-        data = sock.recv(256)
+        data = sock.recv(512)
     except Exception as e:
         logger('Recieveing data was aborted')
         return []
@@ -70,6 +81,15 @@ def check_connection(address, port):
         return False
     finally:
         s.close()
+
+
+def get_pid(procces):
+    pids = []
+    for pid in psutil.pids():
+        p = psutil.Process(pid)
+        if p.name() == procces:
+            pids.append(p.pid)
+    return pids
 
 
 def send_email(user, pwd, recipient, subject, body, logger):
@@ -127,9 +147,20 @@ def config_logging():
     return logger
 
 
+def start_miner():
+    command = 'start cmd.exe /k ' + miner_path + ' -epool ' + epool + ' -eval ' + ewal + ' -epsw ' + epsw + ' -dcoin ' + dcoin + ' -dpool ' + dpool + ' -dwal ' + dwal + ' -dpsw ' + dpsw + ' -ftime ' + ftime + ' -mpsw ' + mpsw
+    os.system(command)
+
+
+def stop_miner():
+    os.system("taskkill /f /im EthDcrMiner64.exe")
+    os.system("taskkill /f /im cmd.exe")
+
+
 def main():
+    invalid_shares_prev = 0
     previous_hashrate = hashrate_limit + 1
-    previous_miner_uptime = 0
+    previous_miner_uptime = 1
     sys_uptime = uptime.uptime()
     logger = config_logging()
     logger.info('Started ethmon')
@@ -139,6 +170,33 @@ def main():
         send_email(email_user, email_password, recipient, 'System was rebooted',
                    'Current system uptime is ' + str(sys_uptime) + ' s', logger)
     while True:
+        # check miner process
+        logger.info('Checking if miner is running...')
+        pids = get_pid(process_name)
+        if len(pids) == 0:
+            logger.info('Miner is not running, sending email')
+            send_email(email_user, email_password, recipient, 'Miner is not running',
+                       'Miner is not running. Ethmon will try to start is manually', logger)
+            logger.info('Starting miner.')
+            start_miner()
+            logger.info('Waiting for retry.')
+            time.sleep(30)
+            continue
+        if len(pids) > 1:
+            logger.info('More than one miner running, sending email')
+            send_email(email_user, email_password, recipient, 'More than one miner running',
+                       'Too many miners started, check the system', logger)
+            logger.info('Stopping  miner.')
+            stop_miner()
+            logger.info('Starting miner.')
+            start_miner()
+            logger.info('Waiting for retry...')
+            time.sleep(60)
+            continue
+        if len(pids) == 1:
+            logger.info('Miner is running with PID ' + str(pids[0]))
+
+        # check pool connection
         reachable = 0
         connection = check_connection(pools[0], pool_port)
         logger.info('Connection test result to ' + pools[0] + ' is : ' + str(connection))
@@ -159,8 +217,9 @@ def main():
             time.sleep(60)
             continue
 
-        # getting data
+        # getting data from miner using API
         data = get_data(miner_ip, miner_port, miner_password, logger)
+        retries = 0
         try:
             all = data['result'][6].split(';')
             temp = all[::2]
@@ -168,9 +227,30 @@ def main():
             invalid_shares = int(data['result'][8].split(';')[0])
             miner_uptime = data['result'][1]
         except Exception as e:
-            logger.info("Data is empty or invalid, waiting 60 seconds for recheck...")
-            time.sleep(60)
-            continue
+            retries += 1
+            if retries < 3:
+                logger.info("Data is empty or invalid, waiting 60 seconds for recheck... Attempt # %d" % (retries + 1))
+                time.sleep(60)
+                continue
+            else:
+                logger.info("Too many unsuccessful attempts, sending email and restarting miner")
+                send_email(email_user, email_password, recipient, 'Miner is unreachable, restarting',
+                           'Miner is unrechable via API. Ethmon will try to restart is manually', logger)
+                stop_miner()
+                start_miner()
+                continue
+
+        # checking number of active cards
+        cards = len(temp)
+        logger.info('Number of active cards: ' + str(cards))
+        if cards < cards_limit:
+            logger.info('Number of active cards trigger, sending emails')
+            send_email(email_user, email_password, recipient, 'Number of active cards less than a limit',
+                       'Number of active cards: %d' % cards, logger)
+            logger.info('Stopping  miner.')
+            stop_miner()
+            logger.info('Starting miner.')
+            start_miner()
 
         # checking temp
         logger.info('GPU temp: ' + str(temp))
@@ -198,10 +278,16 @@ def main():
 
         # invalid shares
         logger.info('Number of ETH invalid shares: ' + str(invalid_shares))
-        if invalid_shares != 0:
+        if invalid_shares != invalid_shares_prev:
             logger.info('Invalid shares trigger, sending emails')
             send_email(email_user, email_password, recipient, 'Number of invalid shares increasing',
                        'Number of invalid shares: %s' % invalid_shares, logger)
+            invalid_shares_prev = invalid_shares
+            logger.info('Stopping  miner.')
+            stop_miner()
+            logger.info('Starting miner.')
+            start_miner()
+            invalid_shares_prev=0
 
         # miner uptime
         logger.info('Miner uptime is ' + miner_uptime + ' min')
@@ -223,14 +309,16 @@ def main():
         logger.info('Avg hashrate: ' + str("{:,.2f}".format(current_hashrate / 1000)) + " Mh/s")
         if current_hashrate < hashrate_limit:
             if previous_hashrate < hashrate_limit:
-                logger.info('Avg hashrate <' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s two times in a row, sending emails and reboot!')
+                logger.info('Avg hashrate <' + str(
+                    "{:,}".format(hashrate_limit / 1000)) + ' Mh/s two times in a row, sending emails and reboot!')
                 send_email(email_user, email_password, recipient,
                            'Alarm! Hashrate is less than' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s',
                            'Current avg hashrate is %s h/s. Rebooting!' % "{:,.2f}".format(
                                current_hashrate), logger)
                 os.system("shutdown -r -c \"low hashrate, rebooted by vahter!\"")
             logger.info('Avg hashrate <' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s, sending emails')
-            send_email(email_user, email_password, recipient, 'Warning! Hashrate is less than ' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s',
+            send_email(email_user, email_password, recipient,
+                       'Warning! Hashrate is less than ' + str("{:,}".format(hashrate_limit / 1000)) + ' Mh/s',
                        'Current avg hashrate is %s h/s.' % "{:,.2f}".format(current_hashrate), logger)
         previous_hashrate = current_hashrate
 
