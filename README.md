@@ -5,18 +5,25 @@ The script will notify you via email if:
   2. GPU temperature is higher than a configured limit
   3. GPU fan speed is less than a configured limit (possibly fan is broken)
   4. Number of invalid shares increasing
-  5. Miner was restarted
-  6. System was rebooted 
-  7. Pool is unreachable
+  5. Number of active cards(GPUS) is less than a configured limit
+  6. Miner was restarted
+  7. System was rebooted 
+  8. Pool is unreachable
   
-If average hashrate during 5 mins is less than a limit two times in a row, ethmon will send email and reboot the system.
+The script will:
+  1. Start miner if there's no such process
+  2. Restart miner if there's more then 1 miner running
+  3. Restart miner if it's unreachable via API
+  4. Restart miner if invalid shares increasing
+  5. Restart miner if number of active cards (GPUs) is less than a configured limit
+  6. Restart system if average hashrate during 5 mins is less than a limit two times in a row
 
 ## Dependencies:  
 Python uptime package. Installation:  
     *pip install uptime*
   
 ## Setup:  
-  Just set all necessary parameters at config section
+  Just set all necessary parameters at config section & add miner to Windows startup
   
   
 ## Screenshot
