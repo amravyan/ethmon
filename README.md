@@ -1,5 +1,5 @@
 # ethmon
-Very simple python script for monitoring Claymore's Dual Ethereum miner. Sure it's not the best solution to control a huge amount of rigs, but if you have a few and don't need complicated event analyzing and autorecover features - feel free to use it.  
+Very simple python script for monitoring Claymore's Dual Ethereum miner running on Windows machine. Sure it's not the best solution to control a huge amount of rigs, but if you have a few and don't need complicated event analyzing and autorecover features - feel free to use it.  
 The script will notify you via email if:
   1. Average hashrate during 5 minutes is less than a configured limit
   2. GPU temperature is higher than a configured limit
