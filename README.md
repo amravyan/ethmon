@@ -5,7 +5,7 @@ The script will notify you via email if:
   2. GPU temperature is higher than a configured limit
   3. GPU fan speed is less than a configured limit (possibly fan is broken)
   4. Number of invalid shares increasing
-  5. Number of active cards(GPUS) is less than a configured limit
+  5. Number of active cards(GPUs) is less than a configured limit
   6. Miner was restarted
   7. System was rebooted 
   8. Pool is unreachable
