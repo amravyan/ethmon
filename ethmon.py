@@ -20,6 +20,7 @@ recipient = ['person1@gmail.com', 'person2@gmail.com']
 miner_ip = '127.0.0.1'
 miner_port = 3333
 miner_password = 'password'
+process_name = 'EthDcrMiner64.exe'
 pools = ['eth-eu1.nanopool.org', 'eth-eu2.nanopool.org', 'eth-us-east1.nanopool.org', 'eth-us-west1.nanopool.org',
          'eth-asia1.nanopool.org']
 pool_port = 9999
